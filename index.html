@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GPS Alarm - Google Maps Style</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #111;
+      color: white;
+      text-align: center;
+    }
+
+    #controls {
+      padding: 15px;
+      background: #1c1c1c;
+    }
+
+    #map {
+      height: 85vh;
+      width: 100%;
+    }
+
+    input {
+      padding: 6px;
+      margin: 5px;
+    }
+
+    button {
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    #status {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="controls">
+  <input type="number" id="radius" value="500" placeholder="Alarm Radius (meters)">
+  <button onclick="startTracking()">Start Tracking</button>
+  <button onclick="stopTracking()">Stop</button>
+  <div id="status"></div>
+</div>
+
+
+<div id="map"></div>
+
+<audio id="alarmSound">
+  <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg">
+</audio>
+
+<script>
+let map;
+let userMarker;
+let destinationMarker;
+let alarmCircle;
+let destinationPosition;
+let radiusMeters;
+let alarmTriggered = false;
+let watchId = null;
+
+function initMap() {
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 20.5937, lng: 78.9629 }, // India center
+    zoom: 5
+  });
+
+  // Set destination on click
+  map.addListener("click", function(event) {
+    destinationPosition = event.latLng;
+
+    if(destinationMarker) destinationMarker.setMap(null);
+
+    destinationMarker = new google.maps.Marker({
+      position: destinationPosition,
+      map: map,
+      title: "Destination",
+      icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+    });
+
+    alert("Destination selected!");
+  });
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = x => x * Math.PI / 180;
+
+  let dLat = toRad(lat2 - lat1);
+  let dLon = toRad(lon2 - lon1);
+
+  let a = Math.sin(dLat/2) ** 2 +
+          Math.cos(toRad(lat1)) *
+          Math.cos(toRad(lat2)) *
+          Math.sin(dLon/2) ** 2;
+
+  let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function startTracking() {
+  if(!destinationPosition) {
+    alert("Select destination first!");
+    return;
+  }
+
+  radiusMeters = parseFloat(document.getElementById("radius").value);
+  alarmTriggered = false;
+
+  if(alarmCircle) alarmCircle.setMap(null);
+
+  alarmCircle = new google.maps.Circle({
+    strokeColor: "#FF0000",
+    strokeOpacity: 0.8,
+    strokeWeight: 2,
+    fillOpacity: 0,
+    map: map,
+    center: destinationPosition,
+    radius: radiusMeters
+  });
+
+  if(navigator.geolocation) {
+    watchId = navigator.geolocation.watchPosition(
+      position => {
+
+        let lat = position.coords.latitude;
+        let lng = position.coords.longitude;
+
+        let currentPosition = new google.maps.LatLng(lat, lng);
+
+        if(!userMarker) {
+          userMarker = new google.maps.Marker({
+            position: currentPosition,
+            map: map,
+            title: "You",
+            icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
+          });
+        } else {
+          userMarker.setPosition(currentPosition);
+        }
+
+        map.setCenter(currentPosition);
+
+        let distance = haversine(
+          lat,
+          lng,
+          destinationPosition.lat(),
+          destinationPosition.lng()
+        );
+
+        document.getElementById("status").innerHTML =
+          "Distance: " + distance.toFixed(2) + " meters";
+
+        if(distance <= radiusMeters && !alarmTriggered) {
+          alarmTriggered = true;
+
+          document.getElementById("alarmSound").play();
+          alert("🚨 Wake up! Destination near!");
+
+          navigator.geolocation.clearWatch(watchId);
+        }
+
+      },
+      error => {
+        alert("Location access denied or unavailable.");
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 5000
+      }
+    );
+  } else {
+    alert("Geolocation not supported.");
+  }
+}
+
+function stopTracking() {
+  if(watchId) {
+    navigator.geolocation.clearWatch(watchId);
+    alert("Tracking stopped.");
+  }
+}
+</script>
+
+
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAT12JuLfuwhvnr6SIfZJOvtrHQtf_bL2U&callback=initMap">
+</script>
+
+</body>
+</html>
