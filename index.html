@@ -1,195 +1,345 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <title>GPS Alarm - Google Maps Style</title>
+  <title>GeoWake</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
-    body {
+    * {
       margin: 0;
-      font-family: Arial;
-      background: #111;
-      color: white;
-      text-align: center;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
     }
 
-    #controls {
-      padding: 15px;
-      background: #1c1c1c;
+    body {
+      overflow: hidden;
     }
 
     #map {
-      height: 85vh;
+      height: 100vh;
       width: 100%;
     }
 
+    .panel {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      padding: 20px;
+      backdrop-filter: blur(20px);
+      background: rgba(0, 0, 0, 0.6);
+      border-top-left-radius: 25px;
+      border-top-right-radius: 25px;
+      color: white;
+      box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .panel h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
     input {
-      padding: 6px;
-      margin: 5px;
+      flex: 1;
+      padding: 10px;
+      border-radius: 12px;
+      border: none;
+      outline: none;
+      font-size: 16px;
     }
 
     button {
-      padding: 8px 12px;
+      width: 100%;
+      padding: 12px;
+      border-radius: 15px;
+      border: none;
+      font-size: 16px;
+      font-weight: bold;
       cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .start-btn {
+      background: linear-gradient(45deg, #00ff99, #00ccff);
+      color: black;
+    }
+
+    .stop-btn {
+      background: #ff4444;
+      color: white;
     }
 
     #status {
       margin-top: 10px;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    @media (min-width: 768px) {
+      .panel {
+        width: 400px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-radius: 25px;
+        margin-bottom: 20px;
+      }
+    }
+
+    .onboarding {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .onboarding-card {
+      width: 90%;
+      max-width: 400px;
+      background: #1e1e1e;
+      padding: 25px;
+      border-radius: 20px;
+      text-align: left;
+      color: white;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .onboarding-card h2 {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .steps p {
+      margin: 8px 0;
+      font-size: 15px;
+    }
+
+    .onboarding-card button {
+      margin-top: 15px;
+      width: 100%;
+      padding: 12px;
+      border-radius: 15px;
+      border: none;
+      background: linear-gradient(45deg, #00ff99, #00ccff);
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
     }
   </style>
 </head>
+
 <body>
 
-<div id="controls">
-  <input type="number" id="radius" value="500" placeholder="Alarm Radius (meters)">
-  <button onclick="startTracking()">Start Tracking</button>
-  <button onclick="stopTracking()">Stop</button>
-  <div id="status"></div>
-</div>
+  <div id="map"></div>
+
+  <div id="onboarding" class="onboarding">
+    <div class="onboarding-card">
+      <h2>👋 Welcome to GeoWake</h2>
+
+      <div class="steps">
+        <p>1️⃣ Tap anywhere on map to select your destination.</p>
+        <p>2️⃣ Enter alarm radius (e.g. 500 meters).</p>
+        <p>3️⃣ Tap "Start Tracking".</p>
+        <p>4️⃣ Allow location access.</p>
+        <p>5️⃣ Relax 😴 — alarm rings before destination.</p>
+      </div>
+
+      <button onclick="closeOnboarding()">Got it 🚀</button>
+    </div>
+  </div>
 
 
-<div id="map"></div>
+  <div class="panel">
+    <h2>📍 GeoWake Alarm</h2>
 
-<audio id="alarmSound">
-  <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg">
-</audio>
+    <div class="input-group">
+      <input type="number" id="radius" value="500" placeholder="Alarm Radius (meters)">
+    </div>
 
-<script>
-let map;
-let userMarker;
-let destinationMarker;
-let alarmCircle;
-let destinationPosition;
-let radiusMeters;
-let alarmTriggered = false;
-let watchId = null;
+    <button class="start-btn" onclick="startTracking()">Start Tracking</button>
+    <button class="stop-btn" onclick="stopTracking()">Stop</button>
 
-function initMap() {
-  map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: 20.5937, lng: 78.9629 }, // India center
-    zoom: 5
-  });
+    <div id="status">Select destination by tapping on map.</div>
+    <button onclick="showOnboarding()" class="help-btn">?</button>
 
-  // Set destination on click
-  map.addListener("click", function(event) {
-    destinationPosition = event.latLng;
+  </div>
 
-    if(destinationMarker) destinationMarker.setMap(null);
+  <audio id="alarmSound">
+    <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg">
+  </audio>
 
-    destinationMarker = new google.maps.Marker({
-      position: destinationPosition,
-      map: map,
-      title: "Destination",
-      icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
-    });
+  <script>
+    let map;
+    let userMarker;
+    let destinationMarker;
+    let alarmCircle;
+    let destinationPosition;
+    let radiusMeters;
+    let alarmTriggered = false;
+    let watchId = null;
 
-    alert("Destination selected!");
-  });
-}
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 20.5937, lng: 78.9629 }, // India center
+        zoom: 5
+      });
 
-function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const toRad = x => x * Math.PI / 180;
+      // Set destination on click
+      map.addListener("click", function (event) {
+        destinationPosition = event.latLng;
 
-  let dLat = toRad(lat2 - lat1);
-  let dLon = toRad(lon2 - lon1);
+        if (destinationMarker) destinationMarker.setMap(null);
 
-  let a = Math.sin(dLat/2) ** 2 +
-          Math.cos(toRad(lat1)) *
-          Math.cos(toRad(lat2)) *
-          Math.sin(dLon/2) ** 2;
+        destinationMarker = new google.maps.Marker({
+          position: destinationPosition,
+          map: map,
+          title: "Destination",
+          icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+        });
 
-  let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
+        alert("Destination selected!");
+      });
+    }
 
-function startTracking() {
-  if(!destinationPosition) {
-    alert("Select destination first!");
-    return;
-  }
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const toRad = x => x * Math.PI / 180;
 
-  radiusMeters = parseFloat(document.getElementById("radius").value);
-  alarmTriggered = false;
+      let dLat = toRad(lat2 - lat1);
+      let dLon = toRad(lon2 - lon1);
 
-  if(alarmCircle) alarmCircle.setMap(null);
+      let a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) ** 2;
 
-  alarmCircle = new google.maps.Circle({
-    strokeColor: "#FF0000",
-    strokeOpacity: 0.8,
-    strokeWeight: 2,
-    fillOpacity: 0,
-    map: map,
-    center: destinationPosition,
-    radius: radiusMeters
-  });
+      let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
 
-  if(navigator.geolocation) {
-    watchId = navigator.geolocation.watchPosition(
-      position => {
-
-        let lat = position.coords.latitude;
-        let lng = position.coords.longitude;
-
-        let currentPosition = new google.maps.LatLng(lat, lng);
-
-        if(!userMarker) {
-          userMarker = new google.maps.Marker({
-            position: currentPosition,
-            map: map,
-            title: "You",
-            icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
-          });
-        } else {
-          userMarker.setPosition(currentPosition);
-        }
-
-        map.setCenter(currentPosition);
-
-        let distance = haversine(
-          lat,
-          lng,
-          destinationPosition.lat(),
-          destinationPosition.lng()
-        );
-
-        document.getElementById("status").innerHTML =
-          "Distance: " + distance.toFixed(2) + " meters";
-
-        if(distance <= radiusMeters && !alarmTriggered) {
-          alarmTriggered = true;
-
-          document.getElementById("alarmSound").play();
-          alert("🚨 Wake up! Destination near!");
-
-          navigator.geolocation.clearWatch(watchId);
-        }
-
-      },
-      error => {
-        alert("Location access denied or unavailable.");
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 5000
+    function startTracking() {
+      if (!destinationPosition) {
+        alert("Select destination first!");
+        return;
       }
-    );
-  } else {
-    alert("Geolocation not supported.");
-  }
-}
 
-function stopTracking() {
-  if(watchId) {
-    navigator.geolocation.clearWatch(watchId);
-    alert("Tracking stopped.");
-  }
-}
-</script>
+      radiusMeters = parseFloat(document.getElementById("radius").value);
+      alarmTriggered = false;
+
+      if (alarmCircle) alarmCircle.setMap(null);
+
+      alarmCircle = new google.maps.Circle({
+        strokeColor: "#FF0000",
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillOpacity: 0,
+        map: map,
+        center: destinationPosition,
+        radius: radiusMeters
+      });
+
+      if (navigator.geolocation) {
+        watchId = navigator.geolocation.watchPosition(
+          position => {
+
+            let lat = position.coords.latitude;
+            let lng = position.coords.longitude;
+
+            let currentPosition = new google.maps.LatLng(lat, lng);
+
+            if (!userMarker) {
+              userMarker = new google.maps.Marker({
+                position: currentPosition,
+                map: map,
+                title: "You",
+                icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
+              });
+            } else {
+              userMarker.setPosition(currentPosition);
+            }
+
+            map.setCenter(currentPosition);
+
+            let distance = haversine(
+              lat,
+              lng,
+              destinationPosition.lat(),
+              destinationPosition.lng()
+            );
+
+            document.getElementById("status").innerHTML =
+              "Distance: " + distance.toFixed(2) + " meters";
+
+            if (distance <= radiusMeters && !alarmTriggered) {
+              alarmTriggered = true;
+
+              document.getElementById("alarmSound").play();
+              alert("🚨 Wake up! Destination near!");
+
+              navigator.geolocation.clearWatch(watchId);
+            }
+
+          },
+          error => {
+            alert("Location access denied or unavailable.");
+          },
+          {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 5000
+          }
+        );
+      } else {
+        alert("Geolocation not supported.");
+      }
+    }
+
+    function stopTracking() {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        alert("Tracking stopped.");
+      }
+    }
+    function closeOnboarding() {
+      document.getElementById("onboarding").style.display = "none";
+      localStorage.setItem("geowake_seen", "true");
+    }
+
+    window.onload = function () {
+      if (localStorage.getItem("geowake_seen")) {
+        document.getElementById("onboarding").style.display = "none";
+      }
+    }
+    function showOnboarding() {
+      document.getElementById("onboarding").style.display = "flex";
+    }
+
+  </script>
 
 
-<script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAT12JuLfuwhvnr6SIfZJOvtrHQtf_bL2U&callback=initMap">
-</script>
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAT12JuLfuwhvnr6SIfZJOvtrHQtf_bL2U&callback=initMap">
+    </script>
 
 </body>
+
 </html>
