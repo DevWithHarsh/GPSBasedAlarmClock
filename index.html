@@ -293,6 +293,12 @@
         });
       });
     }
+    document.getElementById("searchBox").addEventListener("focus", function () {
+      showHistory();
+    });
+    document.getElementById("searchBox").addEventListener("input", function () {
+      document.getElementById("searchHistory").style.display = "none";
+    });
 
 
     // ✅ Reusable Destination Setter (used by search + map click)
@@ -492,6 +498,36 @@
       }
 
       localStorage.setItem("geo_history", JSON.stringify(searchHistory));
+    }
+    function showHistory() {
+
+      const box = document.getElementById("searchHistory");
+      box.innerHTML = "";
+
+      if (searchHistory.length === 0) return;
+
+      searchHistory.forEach(item => {
+
+        const div = document.createElement("div");
+        div.className = "history-item";
+        div.innerText = item.name;
+
+        div.onclick = function () {
+
+          const latLng = new google.maps.LatLng(
+            item.location.lat,
+            item.location.lng
+          );
+
+          setDestination(latLng);
+          box.style.display = "none";
+          document.getElementById("searchBox").value = item.name;
+        };
+
+        box.appendChild(div);
+      });
+
+      box.style.display = "block";
     }
 
   </script>
