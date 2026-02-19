@@ -53,6 +53,7 @@
       border: none;
       outline: none;
       font-size: 16px;
+      margin-top: 15px;
     }
 
     button {
@@ -144,6 +145,36 @@
         opacity: 1;
       }
     }
+
+    #searchBox {
+      width: 100%;
+      padding: 10px;
+      border-radius: 12px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      margin-top: 15px;
+    }
+
+    .history-box {
+      background: #2a2a2a;
+      border-radius: 12px;
+      margin-top: 5px;
+      max-height: 180px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .history-item {
+      padding: 10px;
+      border-bottom: 1px solid #444;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .history-item:hover {
+      background: #3a3a3a;
+    }
   </style>
 </head>
 
@@ -171,6 +202,11 @@
   <div class="panel">
     <h2>📍 GeoWake Alarm</h2>
 
+    <input id="searchBox" type="text" placeholder="Search destination..." />
+    <div id="searchHistory" class="history-box"></div>
+
+
+
     <div class="input-group">
       <input type="number" id="radius" value="500" placeholder="Alarm Radius (meters)">
     </div>
@@ -196,30 +232,99 @@
     let radiusMeters;
     let alarmTriggered = false;
     let watchId = null;
+    let directionsService;
+    let directionsRenderer;
+    let currentLocation = null;
+    let searchHistory = JSON.parse(localStorage.getItem("geo_history")) || [];
+
 
     function initMap() {
+
       map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 20.5937, lng: 78.9629 }, // India center
-        zoom: 5
+        center: { lat: 20.5937, lng: 78.9629 },
+        zoom: 5,
+        mapTypeControl: true,
+        streetViewControl: false
       });
 
-      // Set destination on click
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer({
+        suppressMarkers: false,
+        polylineOptions: {
+          strokeColor: "#00ccff",
+          strokeWeight: 5
+        }
+      });
+
+      directionsRenderer.setMap(map);
+
+      // 🔎 SEARCH AUTOCOMPLETE
+      const input = document.getElementById("searchBox");
+      const autocomplete = new google.maps.places.Autocomplete(input);
+
+      autocomplete.addListener("place_changed", function () {
+        const place = autocomplete.getPlace();
+        if (!place.geometry) return;
+
+        saveToHistory(place);
+        setDestination(place.geometry.location);
+      });
+
+      // 📍 MANUAL MAP CLICK (Precise selection)
       map.addListener("click", function (event) {
-        destinationPosition = event.latLng;
+        setDestination(event.latLng);
+      });
 
-        if (destinationMarker) destinationMarker.setMap(null);
+      // 📍 Get initial location
+      navigator.geolocation.getCurrentPosition(position => {
+        currentLocation = new google.maps.LatLng(
+          position.coords.latitude,
+          position.coords.longitude
+        );
 
-        destinationMarker = new google.maps.Marker({
-          position: destinationPosition,
+        map.setCenter(currentLocation);
+        map.setZoom(15);
+
+        userMarker = new google.maps.Marker({
+          position: currentLocation,
           map: map,
-          title: "Destination",
-          icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+          title: "You",
+          icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
         });
-
-        alert("Destination selected!");
       });
     }
 
+
+    // ✅ Reusable Destination Setter (used by search + map click)
+    function setDestination(geometry) {
+
+      destinationPosition = geometry.location || geometry;
+
+      if (destinationMarker) destinationMarker.setMap(null);
+
+      destinationMarker = new google.maps.Marker({
+        position: destinationPosition,
+        map: map,
+        title: "Destination"
+      });
+
+      if (geometry.viewport) {
+        map.fitBounds(geometry.viewport);
+      } else {
+        map.panTo(destinationPosition);
+        map.setZoom(16);
+      }
+
+      if (alarmCircle) {
+        alarmCircle.setCenter(destinationPosition);
+      }
+
+      calculateRoute();
+    }
+
+
+
+    // 📏 Distance formula
     function haversine(lat1, lon1, lat2, lon2) {
       const R = 6371000;
       const toRad = x => x * Math.PI / 180;
@@ -236,7 +341,10 @@
       return R * c;
     }
 
+
+    // 🚀 Start Tracking
     function startTracking() {
+
       if (!destinationPosition) {
         alert("Select destination first!");
         return;
@@ -258,13 +366,17 @@
       });
 
       if (navigator.geolocation) {
+
         watchId = navigator.geolocation.watchPosition(
+
           position => {
 
-            let lat = position.coords.latitude;
-            let lng = position.coords.longitude;
+            const currentPosition = new google.maps.LatLng(
+              position.coords.latitude,
+              position.coords.longitude
+            );
 
-            let currentPosition = new google.maps.LatLng(lat, lng);
+            currentLocation = currentPosition;
 
             if (!userMarker) {
               userMarker = new google.maps.Marker({
@@ -279,39 +391,64 @@
 
             map.setCenter(currentPosition);
 
+            // 🔵 LIVE ROUTE UPDATE
+            calculateRoute();
+
             let distance = haversine(
-              lat,
-              lng,
+              position.coords.latitude,
+              position.coords.longitude,
               destinationPosition.lat(),
               destinationPosition.lng()
             );
 
             document.getElementById("status").innerHTML =
-              "Distance: " + distance.toFixed(2) + " meters";
+              "Distance: " + distance.toFixed(0) + " meters";
 
             if (distance <= radiusMeters && !alarmTriggered) {
               alarmTriggered = true;
-
               document.getElementById("alarmSound").play();
               alert("🚨 Wake up! Destination near!");
-
               navigator.geolocation.clearWatch(watchId);
             }
 
           },
+
           error => {
             alert("Location access denied or unavailable.");
           },
+
           {
             enableHighAccuracy: true,
             maximumAge: 0,
             timeout: 5000
           }
         );
+
       } else {
         alert("Geolocation not supported.");
       }
     }
+
+
+    // 🛣️ Route calculation
+    function calculateRoute() {
+
+      if (!currentLocation || !destinationPosition) return;
+
+      directionsService.route(
+        {
+          origin: currentLocation,
+          destination: destinationPosition,
+          travelMode: google.maps.TravelMode.DRIVING
+        },
+        (result, status) => {
+          if (status === "OK") {
+            directionsRenderer.setDirections(result);
+          }
+        }
+      );
+    }
+
 
     function stopTracking() {
       if (watchId) {
@@ -319,6 +456,7 @@
         alert("Tracking stopped.");
       }
     }
+
     function closeOnboarding() {
       document.getElementById("onboarding").style.display = "none";
       localStorage.setItem("geowake_seen", "true");
@@ -329,16 +467,39 @@
         document.getElementById("onboarding").style.display = "none";
       }
     }
+
     function showOnboarding() {
       document.getElementById("onboarding").style.display = "flex";
+    }
+    function saveToHistory(place) {
+
+      const item = {
+        name: place.name,
+        location: {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng()
+        }
+      };
+
+      // Remove duplicate
+      searchHistory = searchHistory.filter(p => p.name !== item.name);
+
+      searchHistory.unshift(item);
+
+      // Keep only last 5
+      if (searchHistory.length > 5) {
+        searchHistory.pop();
+      }
+
+      localStorage.setItem("geo_history", JSON.stringify(searchHistory));
     }
 
   </script>
 
 
-  <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAT12JuLfuwhvnr6SIfZJOvtrHQtf_bL2U&callback=initMap">
-    </script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAT12JuLfuwhvnr6SIfZJOvtrHQtf_bL2U&libraries=places,geometry
+&callback=initMap">
+</script>
 
 </body>
 
