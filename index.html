@@ -160,9 +160,28 @@
       background: #2a2a2a;
       border-radius: 12px;
       margin-top: 5px;
-      max-height: 180px;
+      max-height: 0;
       overflow-y: auto;
-      display: none;
+      /* 👈 allow vertical scroll */
+      overflow-x: hidden;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+      opacity: 0;
+      scroll-behavior: smooth;
+    }
+
+    .history-box.active {
+      max-height: 220px;
+      /* 👈 fixed height for scroll area */
+      opacity: 1;
+    }
+
+    .history-box::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .history-box::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 10px;
     }
 
     .history-item {
@@ -297,7 +316,7 @@
       showHistory();
     });
     document.getElementById("searchBox").addEventListener("input", function () {
-      document.getElementById("searchHistory").style.display = "none";
+      document.getElementById("searchHistory").classList.remove("active");
     });
 
 
@@ -449,7 +468,20 @@
         },
         (result, status) => {
           if (status === "OK") {
+
             directionsRenderer.setDirections(result);
+
+            const leg = result.routes[0].legs[0];
+
+            const distanceText = leg.distance.text;
+            const durationText = leg.duration.text;
+
+            // Show in status
+            document.getElementById("status").innerHTML =
+              `Distance: ${distanceText} | ETA: ${durationText}`;
+
+            // Save ETA in history
+            updateHistoryETA(durationText);
           }
         }
       );
@@ -484,15 +516,14 @@
         location: {
           lat: place.geometry.location.lat(),
           lng: place.geometry.location.lng()
-        }
+        },
+        eta: null
       };
 
-      // Remove duplicate
       searchHistory = searchHistory.filter(p => p.name !== item.name);
 
       searchHistory.unshift(item);
 
-      // Keep only last 5
       if (searchHistory.length > 5) {
         searchHistory.pop();
       }
@@ -510,7 +541,11 @@
 
         const div = document.createElement("div");
         div.className = "history-item";
-        div.innerText = item.name;
+
+        div.innerHTML = `
+      <strong>${item.name}</strong><br>
+      <small>${item.eta || "No ETA yet"}</small>
+    `;
 
         div.onclick = function () {
 
@@ -520,16 +555,28 @@
           );
 
           setDestination(latLng);
-          box.style.display = "none";
+          box.classList.remove("active");
           document.getElementById("searchBox").value = item.name;
         };
 
         box.appendChild(div);
       });
 
-      box.style.display = "block";
+      box.classList.add("active");
     }
+    function updateHistoryETA(eta) {
 
+      const searchName = document.getElementById("searchBox").value;
+
+      searchHistory = searchHistory.map(item => {
+        if (item.name === searchName) {
+          return { ...item, eta: eta };
+        }
+        return item;
+      });
+
+      localStorage.setItem("geo_history", JSON.stringify(searchHistory));
+    }
   </script>
 
 
