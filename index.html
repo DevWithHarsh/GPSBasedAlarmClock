@@ -255,6 +255,7 @@
     let directionsRenderer;
     let currentLocation = null;
     let searchHistory = JSON.parse(localStorage.getItem("geo_history")) || [];
+    let hasCenteredOnce = false;
 
 
     function initMap() {
@@ -413,8 +414,11 @@
             } else {
               userMarker.setPosition(currentPosition);
             }
-
-            map.setCenter(currentPosition);
+            if (!hasCenteredOnce) {
+              map.setCenter(currentPosition);
+              map.setZoom(16);
+              hasCenteredOnce = true;
+            }
 
             // 🔵 LIVE ROUTE UPDATE
             calculateRoute();
