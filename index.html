@@ -1,672 +1,392 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-  <title>GeoWake</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>WayWake – GPS Based Smart Alarm</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description"
+    content="Never miss your stop again. WayWake is a GPS-based alarm that wakes you exactly when you reach your destination." />
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <script async
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5363232830313944"
+    crossorigin="anonymous"></script>
 
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Inter', sans-serif;
     }
 
     body {
-      overflow: hidden;
+      background: #f3f4f6;
+      color: #111827;
     }
 
-    #map {
-      height: 100vh;
-      width: 100%;
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
     }
 
-    .panel {
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      padding: 20px;
-      backdrop-filter: blur(20px);
-      background: rgba(0, 0, 0, 0.6);
-      border-top-left-radius: 25px;
-      border-top-right-radius: 25px;
-      color: white;
-      box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.4);
+    /* ================= NAVBAR ================= */
+
+    nav {
+      background: #f3f4f6;
+      padding: 15px 6%;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
     }
 
-    .panel h2 {
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-
-    .input-group {
+    .nav-container {
       display: flex;
-      gap: 10px;
-      margin-bottom: 10px;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
     }
 
-    input {
-      flex: 1;
-      padding: 10px;
-      border-radius: 12px;
-      border: none;
-      outline: none;
-      font-size: 16px;
-      margin-top: 15px;
-    }
-
-    button {
-      width: 100%;
-      padding: 12px;
-      border-radius: 15px;
-      border: none;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 8px;
-    }
-
-    .start-btn {
-      background: linear-gradient(45deg, #00ff99, #00ccff);
-      color: black;
-    }
-
-    .stop-btn {
-      background: #ff4444;
-      color: white;
-    }
-
-    #status {
-      margin-top: 10px;
-      font-size: 14px;
-      opacity: 0.9;
-    }
-
-    @media (min-width: 768px) {
-      .panel {
-        width: 400px;
-        left: 50%;
-        transform: translateX(-50%);
-        border-radius: 25px;
-        margin-bottom: 20px;
-      }
-    }
-
-    .onboarding {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.85);
+    .brand {
       display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: #2563eb;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      font-size: 20px;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+    }
+
+    .brand-text {
+      font-size: 20px;
+      font-weight: 700;
+      color: #374151;
+    }
+
+    .hamburger {
+      width: 42px;
+      height: 42px;
+      background: #e5e7eb;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      z-index: 9999;
-      animation: fadeIn 0.4s ease;
+      gap: 4px;
+      cursor: pointer;
     }
 
-    .onboarding-card {
-      width: 90%;
-      max-width: 400px;
-      background: #1e1e1e;
-      padding: 25px;
-      border-radius: 20px;
-      text-align: left;
+    .hamburger span {
+      width: 18px;
+      height: 2px;
+      background: #374151;
+      border-radius: 2px;
+    }
+
+    .nav-menu {
+      position: absolute;
+      top: 65px;
+      right: 0;
+      background: white;
+      list-style: none;
+      width: 220px;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      display: none;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .nav-menu a {
+      text-decoration: none;
+      color: #374151;
+      font-weight: 500;
+    }
+
+    .nav-menu.active {
+      display: flex;
+    }
+
+    .btn-primary {
+      background: #2563eb;
       color: white;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-    }
-
-    .onboarding-card h2 {
+      padding: 12px 18px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-block;
       text-align: center;
-      margin-bottom: 15px;
     }
 
-    .steps p {
-      margin: 8px 0;
-      font-size: 15px;
+    .btn-secondary {
+      background: white;
+      padding: 12px 18px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      text-decoration: none;
+      color: #111;
+      font-weight: 600;
+      display: inline-block;
+      text-align: center;
     }
 
-    .onboarding-card button {
-      margin-top: 15px;
-      width: 100%;
-      padding: 12px;
-      border-radius: 15px;
-      border: none;
-      background: linear-gradient(45deg, #00ff99, #00ccff);
-      font-weight: bold;
-      cursor: pointer;
+    /* ================= HERO ================= */
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 70px 6%;
+      gap: 40px;
+      flex-wrap: wrap;
     }
 
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-
-      to {
-        opacity: 1;
-      }
+    .hero-text {
+      max-width: 550px;
     }
 
-    #searchBox {
-      width: 100%;
-      padding: 10px;
-      border-radius: 12px;
-      border: none;
-      outline: none;
-      font-size: 16px;
-      margin-top: 15px;
+    .hero h1 {
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1.2;
     }
 
-    .history-box {
-      background: #2a2a2a;
-      border-radius: 12px;
-      margin-top: 5px;
-      max-height: 0;
-      overflow-y: auto;
-      /* 👈 allow vertical scroll */
-      overflow-x: hidden;
-      transition: max-height 0.3s ease, opacity 0.3s ease;
-      opacity: 0;
-      scroll-behavior: smooth;
+    .hero h1 span {
+      color: #2563eb;
     }
 
-    .history-box.active {
-      max-height: 220px;
-      /* 👈 fixed height for scroll area */
-      opacity: 1;
+    .hero p {
+      margin-top: 20px;
+      font-size: 17px;
+      color: #6b7280;
+      line-height: 1.6;
     }
 
-    .history-box::-webkit-scrollbar {
-      width: 6px;
+    .hero-buttons {
+      margin-top: 30px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
     }
 
-    .history-box::-webkit-scrollbar-thumb {
-      background: #555;
-      border-radius: 10px;
+    .phone-mockup {
+      width: 280px;
+      border-radius: 30px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     }
 
-    .history-item {
-      padding: 10px;
-      border-bottom: 1px solid #444;
-      cursor: pointer;
+    /* ================= SECTIONS ================= */
+
+    .section {
+      padding: 70px 6%;
+      text-align: center;
+      background: white;
+    }
+
+    .section h2 {
+      font-size: 30px;
+      margin-bottom: 20px;
+    }
+
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+      margin-top: 40px;
+    }
+
+    .feature-box {
+      max-width: 280px;
+    }
+
+    .feature-box h3 {
+      margin-bottom: 10px;
+      color: #2563eb;
+      font-size: 20px;
+    }
+
+    /* ================= CTA ================= */
+
+    .cta {
+      background: #2563eb;
+      color: white;
+      border-radius: 20px;
+      padding: 60px 6%;
+      text-align: center;
+    }
+
+    .cta h2 {
+      font-size: 28px;
+    }
+
+    .cta .btn-primary {
+      background: white;
+      color: #2563eb;
+      margin-top: 20px;
+    }
+
+    /* ================= FOOTER ================= */
+
+    footer {
+      padding: 30px;
+      background: #111827;
+      color: white;
+      text-align: center;
+    }
+
+    footer a {
+      color: #60a5fa;
+      text-decoration: none;
+      margin: 0 10px;
       font-size: 14px;
     }
 
-    .history-item:hover {
-      background: #3a3a3a;
-    }
+    /* ================= MOBILE ================= */
 
-    .ad-container {
-      position: fixed;
-      bottom: 300px;
-      /* adjust based on bottom sheet height */
-      width: 100%;
-      text-align: center;
-      background: #ffffff;
-      z-index: 999;
-    }
+    @media (max-width: 768px) {
 
-    .footer-links {
-      text-align: center;
-      padding: 15px;
-    }
+      .hero {
+        flex-direction: column;
+        text-align: center;
+      }
 
-    .footer-links a {
-      text-decoration: none;
-      background: rgba(0, 200, 83, 0.1);
-      color: #00c853;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 13px;
-      margin: 5px;
-      display: inline-block;
-      transition: 0.3s;
-    }
+      .hero h1 {
+        font-size: 32px;
+      }
 
-    .footer-links a:hover {
-      background: #00c853;
-      color: white;
+      .hero-buttons {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .hero-buttons a {
+        width: 100%;
+      }
+
+      .phone-mockup {
+        width: 220px;
+      }
+
+      .section h2 {
+        font-size: 24px;
+      }
+
     }
   </style>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5363232830313944"
-    crossorigin="anonymous"></script>
 </head>
 
 <body>
 
-  <div id="map"></div>
-
-  <div id="onboarding" class="onboarding">
-    <div class="onboarding-card">
-      <h2>👋 Welcome to GeoWake</h2>
-
-      <div class="steps">
-        <p>1️⃣ Tap anywhere on map to select your destination.</p>
-        <p>2️⃣ Enter alarm radius (e.g. 500 meters).</p>
-        <p>3️⃣ Tap "Start Tracking".</p>
-        <p>4️⃣ Allow location access.</p>
-        <p>5️⃣ Relax 😴 — alarm rings before destination.</p>
+  <!-- NAVBAR -->
+  <nav>
+    <div class="nav-container">
+      <div class="brand">
+        <div class="logo-icon">📍</div>
+        <span class="brand-text">WayWake</span>
       </div>
 
-      <button onclick="closeOnboarding()">Got it 🚀</button>
+      <div class="hamburger" id="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <ul class="nav-menu" id="navMenu">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="/app.html" class="btn-primary">Launch App</a></li>
+      </ul>
     </div>
-  </div>
+  </nav>
 
-  <!-- Ad Container -->
-  <div class="ad-container">
-    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-YOUR_CLIENT_ID" data-ad-slot="YOUR_AD_SLOT"
-      data-ad-format="auto" data-full-width-responsive="true"></ins>
-  </div>
-  <div class="panel">
-    <h2>📍 GeoWake Alarm</h2>
-
-    <input id="searchBox" type="text" placeholder="Search destination..." />
-    <div id="searchHistory" class="history-box"></div>
-
-
-
-    <div class="input-group">
-      <input type="number" id="radius" value="500" placeholder="Alarm Radius (meters)">
-    </div>
-
-    <button class="start-btn" onclick="startTracking()">Start Tracking</button>
-    <button class="stop-btn" onclick="stopTracking()">Stop</button>
-
-    <div id="status">Select destination by tapping on map.</div>
-    <button onclick="showOnboarding()" class="help-btn">?</button>
-
-    <div class="footer-links">
-      <a href="privacy.html">Privacy Policy</a> |
-      <a href="contact.html">Contact</a>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-text">
+      <h1>Never Miss Your <span>Stop Again</span></h1>
+      <p>
+        WayWake is a smart GPS-based alarm that wakes you up exactly when you reach your destination.
+      </p>
+      <div class="hero-buttons">
+        <a href="/app.html" class="btn-primary">Start Now</a>
+        <a href="#how" class="btn-secondary">How It Works</a>
+      </div>
     </div>
 
-  </div>
+    <img src="assets/Map.jpeg" class="phone-mockup" alt="WayWake App Preview">
+  </section>
 
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <h2>Smart Features Built for Commuters</h2>
+    <div class="features">
+      <div class="feature-box">
+        <h3>Real-Time GPS Tracking</h3>
+        <p>Accurate live location tracking ensures precise arrival alerts.</p>
+      </div>
+      <div class="feature-box">
+        <h3>Custom Radius Alarm</h3>
+        <p>Set your own trigger distance and wake up exactly when needed.</p>
+      </div>
+      <div class="feature-box">
+        <h3>Works in Browser</h3>
+        <p>No installation required. Open and start using instantly.</p>
+      </div>
+    </div>
+  </section>
 
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how" style="background:#f3f4f6;">
+    <h2>How WayWake Works</h2>
+    <p style="max-width:700px;margin:auto;margin-top:20px;color:#6b7280;">
+      Simply search your destination, set your preferred radius, and start tracking.
+      The system monitors your live GPS position and triggers the alarm when you are close to your stop.
+    </p>
+  </section>
 
-  <audio id="alarmSound">
-    <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg">
-  </audio>
+  <!-- CTA -->
+  <section class="cta">
+    <h2>Ready to Travel Stress-Free?</h2>
+    <a href="/app.html" class="btn-primary">Launch GPS Alarm</a>
+  </section>
 
+  <!-- FOOTER -->
+  <footer>
+    <a href="/privacy.html">Privacy Policy</a> |
+    <a href="/contact.html">Contact</a>
+    <p style="margin-top:15px;">© 2026 WayWake</p>
+  </footer>
+
+  <!-- JS -->
   <script>
-    let map;
-    let userMarker;
-    let destinationMarker;
-    let alarmCircle;
-    let destinationPosition;
-    let radiusMeters;
-    let alarmTriggered = false;
-    let watchId = null;
-    let directionsService;
-    let directionsRenderer;
-    let currentLocation = null;
-    let searchHistory = JSON.parse(localStorage.getItem("geo_history")) || [];
-    let hasCenteredOnce = false;
+    const hamburger = document.getElementById('hamburger');
+    const navMenu = document.getElementById('navMenu');
 
-
-    function initMap() {
-
-      map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 20.5937, lng: 78.9629 },
-        zoom: 5,
-        mapTypeControl: true,
-        streetViewControl: false
-      });
-
-      directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({
-        suppressMarkers: false,
-        polylineOptions: {
-          strokeColor: "#00ccff",
-          strokeWeight: 5
-        }
-      });
-
-      directionsRenderer.setMap(map);
-
-      // 🔎 SEARCH AUTOCOMPLETE
-      const input = document.getElementById("searchBox");
-      const autocomplete = new google.maps.places.Autocomplete(input);
-
-      autocomplete.addListener("place_changed", function () {
-        const place = autocomplete.getPlace();
-        if (!place.geometry) return;
-
-        saveToHistory(place);
-        setDestination(place.geometry.location);
-      });
-
-      // 📍 MANUAL MAP CLICK (Precise selection)
-      map.addListener("click", function (event) {
-        setDestination(event.latLng);
-      });
-
-      // 📍 Get initial location
-      navigator.geolocation.getCurrentPosition(position => {
-        currentLocation = new google.maps.LatLng(
-          position.coords.latitude,
-          position.coords.longitude
-        );
-
-        map.setCenter(currentLocation);
-        map.setZoom(15);
-
-        userMarker = new google.maps.Marker({
-          position: currentLocation,
-          map: map,
-          title: "You",
-          icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
-        });
-      });
-    }
-    document.getElementById("searchBox").addEventListener("focus", function () {
-      showHistory();
-    });
-    document.getElementById("searchBox").addEventListener("input", function () {
-      document.getElementById("searchHistory").classList.remove("active");
+    hamburger.addEventListener('click', () => {
+      navMenu.classList.toggle('active');
     });
 
-
-    // ✅ Reusable Destination Setter (used by search + map click)
-    function setDestination(geometry) {
-
-      destinationPosition = geometry.location || geometry;
-
-      if (destinationMarker) destinationMarker.setMap(null);
-
-      destinationMarker = new google.maps.Marker({
-        position: destinationPosition,
-        map: map,
-        title: "Destination"
+    // Close nav menu after clicking any link
+    navMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        navMenu.classList.remove('active');
       });
-
-      if (geometry.viewport) {
-        map.fitBounds(geometry.viewport);
-      } else {
-        map.panTo(destinationPosition);
-        map.setZoom(16);
-      }
-
-      if (alarmCircle) {
-        alarmCircle.setCenter(destinationPosition);
-      }
-
-      calculateRoute();
-    }
-
-
-
-    // 📏 Distance formula
-    function haversine(lat1, lon1, lat2, lon2) {
-      const R = 6371000;
-      const toRad = x => x * Math.PI / 180;
-
-      let dLat = toRad(lat2 - lat1);
-      let dLon = toRad(lon2 - lon1);
-
-      let a = Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) ** 2;
-
-      let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    }
-
-
-    // 🚀 Start Tracking
-    function startTracking() {
-
-      if (!destinationPosition) {
-        alert("Select destination first!");
-        return;
-      }
-
-      radiusMeters = parseFloat(document.getElementById("radius").value);
-      alarmTriggered = false;
-
-      if (alarmCircle) alarmCircle.setMap(null);
-
-      alarmCircle = new google.maps.Circle({
-        strokeColor: "#FF0000",
-        strokeOpacity: 0.8,
-        strokeWeight: 2,
-        fillOpacity: 0,
-        map: map,
-        center: destinationPosition,
-        radius: radiusMeters
-      });
-
-      if (navigator.geolocation) {
-
-        watchId = navigator.geolocation.watchPosition(
-
-          position => {
-
-            const currentPosition = new google.maps.LatLng(
-              position.coords.latitude,
-              position.coords.longitude
-            );
-
-            currentLocation = currentPosition;
-
-            if (!userMarker) {
-              userMarker = new google.maps.Marker({
-                position: currentPosition,
-                map: map,
-                title: "You",
-                icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
-              });
-            } else {
-              userMarker.setPosition(currentPosition);
-            }
-            if (!hasCenteredOnce) {
-              map.setCenter(currentPosition);
-              map.setZoom(16);
-              hasCenteredOnce = true;
-            }
-
-            // 🔵 LIVE ROUTE UPDATE
-            calculateRoute();
-
-            let distance = haversine(
-              position.coords.latitude,
-              position.coords.longitude,
-              destinationPosition.lat(),
-              destinationPosition.lng()
-            );
-
-            document.getElementById("status").innerHTML =
-              "Distance: " + distance.toFixed(0) + " meters";
-
-            if (distance <= radiusMeters && !alarmTriggered) {
-              alarmTriggered = true;
-              document.getElementById("alarmSound").play();
-              alert("🚨 Wake up! Destination near!");
-              navigator.geolocation.clearWatch(watchId);
-            }
-
-          },
-
-          error => {
-            alert("Location access denied or unavailable.");
-          },
-
-          {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 5000
-          }
-        );
-
-      } else {
-        alert("Geolocation not supported.");
-      }
-    }
-
-
-    // 🛣️ Route calculation
-    function calculateRoute() {
-
-      if (!currentLocation || !destinationPosition) return;
-
-      directionsService.route(
-        {
-          origin: currentLocation,
-          destination: destinationPosition,
-          travelMode: google.maps.TravelMode.DRIVING
-        },
-        (result, status) => {
-          if (status === "OK") {
-
-            directionsRenderer.setDirections(result);
-
-            const leg = result.routes[0].legs[0];
-
-            const distanceText = leg.distance.text;
-            const durationText = leg.duration.text;
-
-            // Show in status
-            document.getElementById("status").innerHTML =
-              `Distance: ${distanceText} | ETA: ${durationText}`;
-
-            // Save ETA in history
-            updateHistoryETA(durationText);
-          }
-        }
-      );
-    }
-
-
-    function stopTracking() {
-      if (watchId) {
-        navigator.geolocation.clearWatch(watchId);
-        alert("Tracking stopped.");
-      }
-    }
-
-    function closeOnboarding() {
-      document.getElementById("onboarding").style.display = "none";
-      localStorage.setItem("geowake_seen", "true");
-    }
-
-    window.onload = function () {
-      if (localStorage.getItem("geowake_seen")) {
-        document.getElementById("onboarding").style.display = "none";
-      }
-    }
-
-    function showOnboarding() {
-      document.getElementById("onboarding").style.display = "flex";
-    }
-    function saveToHistory(place) {
-
-      const item = {
-        name: place.name,
-        location: {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng()
-        },
-        eta: null
-      };
-
-      searchHistory = searchHistory.filter(p => p.name !== item.name);
-
-      searchHistory.unshift(item);
-
-      if (searchHistory.length > 5) {
-        searchHistory.pop();
-      }
-
-      localStorage.setItem("geo_history", JSON.stringify(searchHistory));
-    }
-    function showHistory() {
-
-      const box = document.getElementById("searchHistory");
-      box.innerHTML = "";
-
-      if (searchHistory.length === 0) return;
-
-      searchHistory.forEach(item => {
-
-        const div = document.createElement("div");
-        div.className = "history-item";
-
-        div.innerHTML = `
-      <strong>${item.name}</strong><br>
-      <small>${item.eta || "No ETA yet"}</small>
-    `;
-
-        div.onclick = function () {
-
-          const latLng = new google.maps.LatLng(
-            item.location.lat,
-            item.location.lng
-          );
-
-          setDestination(latLng);
-          box.classList.remove("active");
-          document.getElementById("searchBox").value = item.name;
-        };
-
-        box.appendChild(div);
-      });
-
-      box.classList.add("active");
-    }
-    function updateHistoryETA(eta) {
-
-      const searchName = document.getElementById("searchBox").value;
-
-      searchHistory = searchHistory.map(item => {
-        if (item.name === searchName) {
-          return { ...item, eta: eta };
-        }
-        return item;
-      });
-
-      localStorage.setItem("geo_history", JSON.stringify(searchHistory));
-    }
+    });
   </script>
 
-
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAT12JuLfuwhvnr6SIfZJOvtrHQtf_bL2U&libraries=places,geometry
-&callback=initMap">
-</script>
-  <script>
-    (adsbygoogle = window.adsbygoogle || []).push({});
-  </script>
-  <div id="cookieBanner" style="
-position: fixed;
-bottom: 0;
-width: 100%;
-background: #222;
-color: #fff;
-padding: 15px;
-text-align: center;
-z-index: 9999;
-font-size: 14px;
-">
-    This website uses cookies to improve your experience and to show ads.
-    <button onclick="acceptCookies()" style="
-margin-left: 10px;
-padding: 5px 12px;
-background: #00c853;
-color: #fff;
-border: none;
-border-radius: 4px;
-">Accept</button>
-  </div>
-
-  <script>
-    function acceptCookies() {
-      localStorage.setItem("cookiesAccepted", "true");
-      document.getElementById("cookieBanner").style.display = "none";
-    }
-
-    if (localStorage.getItem("cookiesAccepted")) {
-      document.getElementById("cookieBanner").style.display = "none";
-    }
-  </script>
 </body>
 
 </html>
